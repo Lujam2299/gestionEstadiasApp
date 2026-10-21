@@ -12,52 +12,38 @@ class InformesController extends Controller
 {
     public function guardarInformes(Request $request)
     {
-        // Validar archivos
         $request->validate([
             'constancia' => 'required|file|mimes:pdf|max:2048',
             'informe' => 'required|file|mimes:pdf|max:2048',
         ]);
-
-        $user = Auth::user();
-        $solicitud = Solicitudes::where('email', $user->email)
-                        ->whereIn('status', [2, 5])
-                        ->firstOrFail();
-        $estancia = Estancia::findOrFail($solicitud->id_estancia);
-        $solicitud->status=4;
-        $solicitud->observaciones='Favor de esperar a la respuesta a su envío.';
-        $solicitud->save();        
-
-        // Crear registro en la base de datos
-        $informe = new Informe();
-        $informe->nombre = $user->name;
-        $informe->id_solicitud = $solicitud->id;
-        //$informe->save();
-
-         // Crear directorio de almacenamiento en public
-         $folderPath = public_path('Informes/' . $informe->id . '_' . $user->name);
-         if (!File::exists($folderPath)) {
-             File::makeDirectory($folderPath, 0755, true);
-         }
- 
-         // Guardar archivo de constancia
-         if ($request->hasFile('constancia')) {
-             $constanciaPath = $folderPath . '/constancia_' . time() . '.pdf';
-             $request->file('constancia')->move($folderPath, 'constancia_' . time() . '.pdf');
-             $informe->ruta_constancia = 'Informes/' . $informe->id . '_' . $user->name . '/' . basename($constanciaPath);
-         }
- 
-         // Guardar archivo de oficio
-         if ($request->hasFile('informe')) {
-             $oficioPath = $folderPath . '/oficio_' . time() . '.pdf';
-             $request->file('informe')->move($folderPath, 'oficio_' . time() . '.pdf');
-             $informe->ruta_oficio = 'Informes/' . $informe->id . '_' . $user->name . '/' . basename($oficioPath);
-         }
- 
-         // Guardar registro en la base de datos
-         $informe->save();
-
+        $newPaths = [];
+        try {
+            \Illuminate\Support\Facades\DB::transaction(function () use ($request, &$newPaths) {
+                $solicitud = Solicitudes::where('email', Auth::user()->email)
+                    ->whereIn('status', [2, 5])->latest()->lockForUpdate()->firstOrFail();
+                $informe = Informe::where('id_solicitud', $solicitud->id)->first() ?? new Informe();
+                $informe->nombre = Auth::user()->name;
+                $informe->id_solicitud = $solicitud->id;
+                foreach (['constancia' => 'ruta_constancia', 'informe' => 'ruta_oficio'] as $key => $column) {
+                    $file = $request->file($key);
+                    $name = $key.'_'.$file->hashName();
+                    $relative = 'Informes/'.$solicitud->id.'/'.$name;
+                    $file->move(public_path('Informes/'.$solicitud->id), $name);
+                    $newPaths[] = $relative;
+                    $informe->$column = $relative;
+                }
+                $informe->save();
+                $solicitud->status = 4;
+                $solicitud->observaciones = 'Favor de esperar a la respuesta a su envío.';
+                $solicitud->save();
+            });
+        } catch (\Throwable $exception) {
+            foreach ($newPaths as $path) { File::delete(public_path($path)); }
+            throw $exception;
+        }
         return view('user.uploadInformesSuccess');
     }
+
     public function showInformes(){
         //$informes= Informe::all();
         $informes = Informe::with('solicitud.estancia')
@@ -73,6 +59,7 @@ class InformesController extends Controller
     {
         // Encuentra la solicitud por su ID
         $solicitud = Solicitudes::findOrFail($id);
+        abort_unless(in_array((int) $solicitud->status, [4, 5], true), 422);
 
         // Actualiza el status y las observaciones
         $solicitud->status = 6;
@@ -92,8 +79,8 @@ class InformesController extends Controller
         if ($solicitud) {
             // Actualizar el estado y las observaciones
             $solicitud->status = 5;
-            $solicitud->observaciones = $request->input('observacion');
-            $solicitud->observaciones = "Detalles en archivos, favor de enviar informes finales de nuevo.";
+            $request->validate(['observacion' => 'nullable|string|max:255']);
+            $solicitud->observaciones = $request->input('observacion') ?: 'Detalles en archivos, favor de enviar informes finales de nuevo.';
             $solicitud->save();
 
             // Redirigir con un mensaje de éxito
@@ -113,49 +100,28 @@ class InformesController extends Controller
 
     public function uploadConstancia(Request $request, $id)
     {
-        $request->validate([
-            'constancia_pdf' => 'required|mimes:pdf|max:2048',
-        ]);
-
-        // Obtener la solicitud y la estancia
-        $solicitud = Solicitudes::findOrFail($id);
-        $solicitud->status = 7;
-        $solicitud->save();
-        $estancia = Estancia::findOrFail($solicitud->id_estancia);
-
-        // Obtener el nombre del usuario y el nombre de la estancia
-        $usuario = Auth::user()->nombre;
-        $nombreEstancia = $estancia->nombre;
-
-        // Crear la ruta de la carpeta
-        $folderPath = public_path('ConstanciasAcreditacion/' . $usuario . '/' . $nombreEstancia);
-
-        // Verificar si la carpeta existe, si no, crearla
-        if (!File::exists($folderPath)) {
-            File::makeDirectory($folderPath, 0755, true);
+        $request->validate(['constancia_pdf' => 'required|file|mimes:pdf|max:2048']);
+        $newPath = null;
+        try {
+            \Illuminate\Support\Facades\DB::transaction(function () use ($request, $id, &$newPath) {
+                $solicitud = Solicitudes::whereKey($id)->lockForUpdate()->firstOrFail();
+                abort_unless((int) $solicitud->status === 6, 422, 'Primero debe liberar el informe.');
+                $informe = Informe::where('id_solicitud', $id)->firstOrFail();
+                $file = $request->file('constancia_pdf');
+                $name = $file->hashName();
+                $file->move(public_path('ConstanciasAcreditacion/'.$id), $name);
+                $newPath = 'ConstanciasAcreditacion/'.$id.'/'.$name;
+                $informe->constancia_tec_terminacion = $newPath;
+                $informe->save();
+                $solicitud->status = 7;
+                $solicitud->save();
+            });
+        } catch (\Throwable $exception) {
+            if ($newPath) { File::delete(public_path($newPath)); }
+            throw $exception;
         }
-
-        // Guardar el archivo de constancia en la carpeta
-        $constanciaPath = $request->file('constancia_pdf')->move(
-            $folderPath,
-            'constancia_' . time() . '.pdf'
-        );
-
-        // Obtener el informe existente o crear uno nuevo
-        $informe = Informe::where('id_solicitud', $id)->first();
-        if (!$informe) {
-            $informe = new Informe();
-            $informe->id_solicitud = $id;
-        }
-
-        // Actualizar el campo constancia_tec_terminacion
-        $informe->constancia_tec_terminacion = 'ConstanciasAcreditacion/' . $usuario . '/' . $nombreEstancia . '/' . basename($constanciaPath);
-        $informe->save();
-
         return redirect()->route('adminDashboard')->with('success', 'Constancia subida exitosamente.');
     }
-
-
 
     public function descargarConstancia($id)
 {
