@@ -59,7 +59,7 @@ class EstanciaController extends Controller
     }
     public function showSolicitudes()
     {
-        $solicitudes = SolicitudesEstancias::all();
+        $solicitudes = Solicitudes::all();
         return view('admi.solicitudes', ['solicitudes' => $solicitudes]);
     }
     public function historicoSolicitudes()
@@ -82,8 +82,10 @@ class EstanciaController extends Controller
             'nombre' => 'required|string',
             'empresa' => 'required|string',
             'fecha_convocatoria' => 'required|date',
-            'fecha_cierre' => 'required|date',
-            'archivo_convocatoria' => 'required|file|mimes:pdf',
+            'fecha_cierre' => 'required|date|after_or_equal:fecha_convocatoria',
+            'archivo_convocatoria' => 'required|file|mimes:pdf|max:2048',
+            'requisitos' => 'required|array|min:1',
+            'requisitos.*' => 'required|integer|distinct|exists:requisitos,id',
         ]);
     
         // Crear una nueva instancia de Estancia y guardar los datos (sin el archivo)
@@ -155,8 +157,8 @@ class EstanciaController extends Controller
     $request->validate([
         'nombre' => 'required|string|max:255',
         'fecha_convocatoria' => 'required|date',
-        'fecha_cierre' => 'required|date',
-        'archivo_convocatoria' => 'nullable|file|mimes:pdf',
+        'fecha_cierre' => 'required|date|after_or_equal:fecha_convocatoria',
+        'archivo_convocatoria' => 'nullable|file|mimes:pdf|max:2048',
         'requisitos' => 'required|array',
         'requisitos.*' => 'integer|exists:requisitos,id',
     ]);
@@ -206,9 +208,9 @@ class EstanciaController extends Controller
 
     public function showUserEstancia($id)
     {
-        $nombreUsuario = Auth::user()->name;
+        $nombreUsuario = Auth::user()->email;
         
-        $solicitudesPendientes = Solicitudes::where('docente', $nombreUsuario)
+        $solicitudesPendientes = Solicitudes::where('email', $nombreUsuario)
         ->where(function ($query) {
             $query->where('status', 0)
                 ->orWhere('status', 1)

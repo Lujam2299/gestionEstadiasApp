@@ -32,13 +32,13 @@ class SolicitudesController extends Controller
         }
     
         // Convertir el JSON de requisitos en un array de IDs
-        $requisitosIds = json_decode($requisitosEstancia->id_requisitos);
+        $requisitosIds = json_decode($requisitosEstancia->id_requisitos, true) ?? [];
     
         // Obtener los registros de requisitos correspondientes a los IDs
         $id_requisitos = Requisitos::whereIn('id', $requisitosIds)->get();
     
         // Verificar si se encontraron requisitos
-        if (!$id_requisitos) {
+        if ($id_requisitos->isEmpty()) {
             abort(404, 'No se encontraron requisitos para la estancia.');
         }
     
@@ -50,98 +50,68 @@ class SolicitudesController extends Controller
     public function generarSolicitud(Request $request, $id)
     {
         $estancia = Estancia::findOrFail($id);
-        $estancias = Estancia::orderBy('fecha_convocatoria', 'asc')->get();
-        // Validaciones
-        $request->validate([
-            'empresa' => 'required|string|max:255',
-            'periodo_duracion' => 'required|string|max:255',
+        abort_if($estancia->vigente != 0 || $estancia->fecha_cierre < today()->toDateString()
+            || $estancia->fecha_convocatoria > today()->toDateString(), 422, 'La convocatoria no está abierta.');
+        $estanciaRequisitos = EstanciaRequisitos::where('id_estancia', $id)->firstOrFail();
+        $ids = json_decode($estanciaRequisitos->id_requisitos, true) ?? [];
+        $rules = $this->solicitudRules();
+        $rules['empresa'] = 'required|string|max:255';
+        $rules['periodo_duracion'] = 'required|string|max:255';
+        foreach ($ids as $requisitoId) {
+            $rules['archivo_adjunto_'.$requisitoId] = 'required|file|mimes:pdf,doc,docx|max:2048';
+        }
+        $data = $request->validate($rules);
+        $folder = null;
+        try {
+            \Illuminate\Support\Facades\DB::transaction(function () use ($request, $id, $ids, $data, &$folder) {
+                // Serialize submissions by the same docente to avoid duplicate active requests.
+                \App\Models\User::whereKey(Auth::id())->lockForUpdate()->firstOrFail();
+                abort_if(Solicitudes::where('email', Auth::user()->email)->whereIn('status', [0, 1, 2, 4, 5, 6])->exists(),
+                    422, 'Ya tiene una solicitud en proceso.');
+                $solicitud = new Solicitudes();
+                $solicitud->forceFill(collect($data)->except(array_map(fn ($id) => 'archivo_adjunto_'.$id, $ids))->all());
+                $solicitud->id_estancia = $id;
+                $solicitud->email = Auth::user()->email;
+                $solicitud->docente = Auth::user()->name;
+                $solicitud->fecha_solicitud = today()->toDateString();
+                $solicitud->status = 0;
+                $solicitud->requisitos = '[]';
+                $solicitud->save();
+                $folder = public_path('solicitudes/'.$solicitud->id);
+                $paths = [];
+                foreach ($ids as $requisitoId) {
+                    $file = $request->file('archivo_adjunto_'.$requisitoId);
+                    $name = $requisitoId.'_'.$file->hashName();
+                    $file->move($folder, $name);
+                    $paths[] = 'solicitudes/'.$solicitud->id.'/'.$name;
+                }
+                $solicitud->requisitos = json_encode($paths);
+                $solicitud->save();
+            });
+        } catch (\Throwable $exception) {
+            if ($folder) {
+                \Illuminate\Support\Facades\File::deleteDirectory($folder);
+            }
+            throw $exception;
+        }
+        return redirect()->route('userSolicitudes')->with('success', 'Solicitud enviada correctamente.');
+    }
+
+    private function solicitudRules(): array
+    {
+        return [
             'proyecto' => 'required|string|max:255',
             'plan_estudios' => 'required|string|max:255',
             'giro_empresa' => 'required|string|max:255',
             'area_complementacion' => 'required|string|max:255',
             'titular_empresa' => 'required|string|max:255',
             'puesto_titular' => 'required|string|max:255',
-            //'archivo_adjunto_' . $idRequisito => 'nullable|file|mimes:pdf,doc,docx|max:2048',
-        ]);
-    
-        // Crear la solicitud
-        $solicitud = new Solicitudes();
-        $solicitud->id_estancia = $id;
-        $solicitud->email = Auth::user()->email;
-        $solicitud->empresa = $request->empresa;
-        $solicitud->docente = auth()->user()->name; // Obtener el nombre del usuario autenticado
-        $solicitud->fecha_solicitud = now()->toDateString();
-        $solicitud->status = 0; // En revisión
-        $solicitud->periodo_duracion = $request->periodo_duracion;
-        $solicitud->proyecto = $request->proyecto;
-        $solicitud->plan_estudios = $request->plan_estudios;
-        $solicitud->giro_empresa = $request->giro_empresa;
-        $solicitud->area_complementacion = $request->area_complementacion;
-        $solicitud->titular_empresa = $request->titular_empresa;
-        $solicitud->puesto_titular = $request->puesto_titular;
-        $solicitud->objetivo = $request->objetivo;
-        $solicitud->inicio_estancia = $request->inicio_estancia;
-        $solicitud->fin_estancia = $request->fin_estancia;
-        $solicitud->requisitos = json_encode([]); // Inicializar el campo con un JSON vacío
-    
-        // Guardar la solicitud para generar el ID
-        $solicitud->save();
-    
-        // Obtener el ID recién creado de la solicitud
-        $idSolicitud = $solicitud->id;
-    
-        // Obtener los requisitos específicos de la estancia
-        $estanciaRequisitos = EstanciaRequisitos::where('id_estancia', $id)->first();
-    
-        if (!$estanciaRequisitos) {
-            return back()->withErrors(['error' => 'No se encontraron requisitos para esta estancia.']);
-        }
-    
-        // Decodificar los IDs de los requisitos desde el JSON
-        $idsRequisitos = json_decode($estanciaRequisitos->id_requisitos, true);
-    
-        // Obtener las siglas de los requisitos necesarios
-        $requisitos = Requisitos::whereIn('id', $idsRequisitos)->pluck('siglas', 'id')->toArray();
-    
-        // Procesar los archivos adjuntos y guardar sus rutas en un JSON
-        $requisitosAdjuntos = [];
-        foreach ($idsRequisitos as $idRequisito) {
-            $fileKey = 'archivo_adjunto_' . $idRequisito; // Clave esperada en el formulario
-    
-            if ($request->hasFile($fileKey)) {
-                $archivo = $request->file($fileKey);
-                $nombreOriginal = $archivo->getClientOriginalName();
-    
-                // Obtener la sigla del requisito correspondiente
-                $sigla = $requisitos[$idRequisito] ?? 'REQ'; // Usar 'REQ' como sigla genérica si no se encuentra
-    
-                // Crear el nuevo nombre del archivo
-                $nombreArchivo = $sigla . '_' . $nombreOriginal;
-    
-                // Ruta donde se guardará el archivo
-                $rutaArchivo = 'solicitudes/' . $idSolicitud;
-    
-                // Crear el directorio si no existe
-                if (!file_exists(public_path($rutaArchivo))) {
-                    mkdir(public_path($rutaArchivo), 0777, true);
-                }
-    
-                // Mover el archivo al directorio
-                $archivo->move(public_path($rutaArchivo), $nombreArchivo);
-    
-                // Agregar la ruta al array de requisitos adjuntos
-                $requisitosAdjuntos[] = $rutaArchivo . '/' . $nombreArchivo;
-            }
-        }
-    
-        // Actualizar el campo requisitos con el JSON de rutas y guardar nuevamente
-        $solicitud->requisitos = json_encode($requisitosAdjuntos);
-        $solicitud->save();
-    
-        // Redireccionar a la vista de éxito o a donde sea necesario
-        return view('dashboard', compact('estancias'))->with('success', 'Archivos actualizados correctamente.');
+            'objetivo' => 'required|string|max:1000',
+            'inicio_estancia' => 'required|date',
+            'fin_estancia' => 'required|date|after_or_equal:inicio_estancia',
+        ];
     }
-       
+
     public function index()
     {
         $userId = Auth::user()->email;
@@ -304,81 +274,42 @@ public function mostrarArchivo($id, $nombreArchivo)
 
     public function userUpdateRequest(Request $request, $id)
     {
-        $request->validate([
-            // Validaciones de archivos o datos existentes
-            'proyecto' => 'required|string|max:255',
-            'plan_estudios' => 'required|string|max:255',
-            'giro_empresa' => 'required|string|max:255',
-            'area_complementacion' => 'required|string|max:255',
-            'titular_empresa' => 'required|string|max:255',
-            'puesto_titular' => 'required|string|max:255',
-            'objetivo' => 'required|string|max:1000',
-        ]);
-        // Obtener la solicitud existente
         $solicitud = Solicitudes::findOrFail($id);
         abort_unless($solicitud->email === Auth::user()->email, 403);
-
-    
-        $solicitud->proyecto = $request->proyecto;
-        $solicitud->plan_estudios = $request->plan_estudios;
-        $solicitud->giro_empresa = $request->giro_empresa;
-        $solicitud->area_complementacion = $request->area_complementacion;
-        $solicitud->titular_empresa = $request->titular_empresa;
-        $solicitud->puesto_titular = $request->puesto_titular;
-        $solicitud->objetivo = $request->objetivo;
-        $solicitud->inicio_estancia = $request->inicio_estancia;
-        $solicitud->fin_estancia = $request->fin_estancia;
-
-         $estanciaRequisitos = EstanciaRequisitos::where('id_estancia', $solicitud->id_estancia)->first();
-    $idRequisitos = json_decode($estanciaRequisitos->id_requisitos, true);
-
-    // Obtener las siglas de los requisitos desde la tabla Requisitos
-    $requisitos = Requisitos::whereIn('id', $idRequisitos)->get()->keyBy('id');
-
-        // Decodificar el JSON de requisitos a un array
-        $requisitosArray = json_decode($solicitud->requisitos, true);
-    
-        // Verificar si $requisitosArray es un array
-        if (!is_array($requisitosArray)) {
-            $requisitosArray = [];
+        abort_unless(in_array((int) $solicitud->status, [0, 1], true), 422, 'La solicitud ya no admite cambios.');
+        $requirements = EstanciaRequisitos::where('id_estancia', $solicitud->id_estancia)->firstOrFail();
+        $ids = json_decode($requirements->id_requisitos, true) ?? [];
+        $rules = $this->solicitudRules();
+        foreach ($ids as $index => $requisitoId) {
+            $rules['nuevo_archivo_'.$index] = 'nullable|file|mimes:pdf,doc,docx|max:2048';
         }
-    
-        // Procesar los archivos adjuntos y actualizar sus rutas en el JSON de requisitos
-        foreach ($requisitosArray as $index => $requisito) {
-            // Verificar si hay un nuevo archivo adjunto para este requisito
-            if ($request->hasFile('nuevo_archivo_' . $index)) {
-                $archivo = $request->file('nuevo_archivo_' . $index);
-
-                $siglas = $requisitos[$idRequisitos[$index]]->siglas ?? 'GEN'; // Obtener las siglas del requisito o usar 'GEN' por defecto
-                $nombreArchivo = $siglas . '_' . $archivo->getClientOriginalName();
-                $rutaArchivo = 'solicitudes/' . $id . '/' . $nombreArchivo;
-    
-                // Eliminar el archivo anterior si existe
-                if (isset($requisito['archivo']) && file_exists(public_path($requisito['archivo']))) {
-                    unlink(public_path($requisito['archivo']));
+        $data = $request->validate($rules);
+        $paths = array_pad(json_decode($solicitud->requisitos, true) ?? [], count($ids), null);
+        $newPaths = [];
+        $oldPaths = [];
+        try {
+            foreach ($ids as $index => $requisitoId) {
+                if ($request->hasFile('nuevo_archivo_'.$index)) {
+                    $file = $request->file('nuevo_archivo_'.$index);
+                    $name = $requisitoId.'_'.$file->hashName();
+                    $relative = 'solicitudes/'.$id.'/'.$name;
+                    $file->move(public_path('solicitudes/'.$id), $name);
+                    $newPaths[] = $relative;
+                    $oldPaths[] = is_array($paths[$index]) ? ($paths[$index]['archivo'] ?? null) : $paths[$index];
+                    $paths[$index] = $relative;
                 }
-    
-                // Mover el nuevo archivo a la carpeta de la solicitud
-                $archivo->move(public_path('solicitudes/' . $id), $nombreArchivo);
-    
-                // Actualizar la ruta del archivo en el JSON de requisitos
-                $requisitosArray[$index] = $rutaArchivo;
             }
+            $solicitud->forceFill(collect($data)->only(array_keys($this->solicitudRules()))->all());
+            $solicitud->requisitos = json_encode($paths);
+            $solicitud->save();
+        } catch (\Throwable $exception) {
+            foreach ($newPaths as $path) { \Illuminate\Support\Facades\File::delete(public_path($path)); }
+            throw $exception;
         }
-    
-        // Codificar el array de requisitos a JSON
-        $requisitosJson = json_encode($requisitosArray);
-    
-        // Actualizar el campo requisitos en la solicitud
-        $solicitud->requisitos = $requisitosJson;
-    
-        // Guardar la solicitud actualizada
-        $solicitud->save();
-    
-        // Redireccionar o proporcionar alguna respuesta adecuada
-        return redirect()->route('userSolicitudes')->with('success', 'Archivos actualizados correctamente.');
+        foreach (array_filter($oldPaths) as $path) { \Illuminate\Support\Facades\File::delete(public_path($path)); }
+        return redirect()->route('userSolicitudes')->with('success', 'Solicitud actualizada correctamente.');
     }
-    
+
     public function VinculacionShowRequest($id){
         $solicitud=Solicitudes::findOrFail($id);
         $convenio=Convenio::where('nombre', $solicitud->empresa)->first();

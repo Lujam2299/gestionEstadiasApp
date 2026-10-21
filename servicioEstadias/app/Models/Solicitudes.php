@@ -39,6 +39,6 @@ class Solicitudes extends Model
     }
     public function docente()
     {
-        return $this->belongsTo(User::class, 'id');
+        return $this->belongsTo(User::class, 'email', 'email');
     }
 }

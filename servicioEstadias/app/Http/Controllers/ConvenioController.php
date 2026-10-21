@@ -18,11 +18,10 @@ class ConvenioController extends Controller
 
     public function store(Request $request)
     {
-        $convenios=Convenio::orderBy('fecha_vigencia');
         $request->validate([
             'nombre' => 'required|string|max:255',
             'fecha_inicio' => 'required|date',
-            'fecha_vigencia' => 'required|date',
+            'fecha_vigencia' => 'required|date|after_or_equal:fecha_inicio',
             'archivo_convenio' => 'required|file|mimes:pdf|max:2048',
         ]);
 
@@ -44,7 +43,7 @@ class ConvenioController extends Controller
             $convenio->update(['archivo_convenio' => $rutaArchivo]);
         }
 
-        return redirect()->route('showConvenios', compact('convenios'))->with('success', 'Convenio creado exitosamente.');
+        return redirect()->route('showConvenios')->with('success', 'Convenio creado exitosamente.');
     }
 
     public function edit($id)
@@ -55,13 +54,12 @@ class ConvenioController extends Controller
 
     public function update(Request $request, $id)
     {
-        $convenios=Convenio::orderBy('fecha_vigencia');
         $convenio = Convenio::findOrFail($id);
 
         $request->validate([
             'nombre' => 'required|string|max:255',
             'fecha_inicio' => 'required|date',
-            'fecha_vigencia' => 'required|date',
+            'fecha_vigencia' => 'required|date|after_or_equal:fecha_inicio',
             'archivo_convenio' => 'nullable|file|mimes:pdf|max:2048', 
         ]);
 
@@ -84,7 +82,7 @@ class ConvenioController extends Controller
 
         $convenio->save();
 
-        return redirect()->route('showConvenios', compact('convenios'))->with('success', 'Convenio actualizado correctamente.');
+        return redirect()->route('showConvenios')->with('success', 'Convenio actualizado correctamente.');
     }
 
 
