@@ -8,7 +8,6 @@ use App\Models\Estancia;
 use App\Models\Estanciarequisitos;
 use App\Models\Requisitos;
 use App\Models\Solicitudes;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -315,7 +314,7 @@ class SolicitudesController extends Controller
         $solicitud = Solicitudes::findOrFail($id);
         $convenio = Convenio::where('nombre', $solicitud->empresa)->first();
         if ($convenio) {
-            if ($convenio->fecha_vigencia > Carbon::today()) {
+            if ($convenio->fecha_inicio <= today()->toDateString() && $convenio->fecha_vigencia >= today()->toDateString()) {
                 $status = 'Vigente';
             } else {
                 $status = 'No vigente';

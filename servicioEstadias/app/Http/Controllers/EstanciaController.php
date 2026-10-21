@@ -16,13 +16,13 @@ class EstanciaController extends Controller
     {
         $estancias = Estancia::orderBy('fecha_convocatoria', 'asc')->get();
 
-        $solicitudes = Solicitudes::where('email', auth()->user()->email)->get();
+        $solicitudes = Solicitudes::with('estancia')->where('email', auth()->user()->email)->get();
 
         foreach ($solicitudes as $solicitud) {
             if ($solicitud->status == 0 || $solicitud->status == 1) {
-                $estancia = Estancia::find($solicitud->id_estancia);
+                $estancia = $solicitud->estancia;
 
-                if ($estancia && $estancia->fecha_cierre < today()) {
+                if ($estancia && $estancia->fecha_cierre < today()->toDateString()) {
                     $solicitud->status = 3;
                     $solicitud->observaciones = 'Plazo terminado, proceso incompleto';
                     $solicitud->save();
@@ -37,7 +37,7 @@ class EstanciaController extends Controller
     {
         $estancias = Estancia::orderBy('fecha_convocatoria', 'asc')->get();
         foreach ($estancias as $estancia) {
-            if ($estancia->fecha_cierre < today()) {
+            if ($estancia->fecha_cierre < today()->toDateString()) {
                 $estancia->vigente = 1;
                 $estancia->save();
             }
