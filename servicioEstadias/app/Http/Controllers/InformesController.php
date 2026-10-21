@@ -159,7 +159,9 @@ class InformesController extends Controller
 
     public function descargarConstancia($id)
 {
-    $idSolicitud = intval($id);
+    $solicitud = Solicitudes::findOrFail($id);
+    abort_unless($solicitud->email === Auth::user()->email || Auth::user()->email === 'desarrolloacademico@tecvalles.mx', 403);
+    $idSolicitud = $solicitud->id;
     
     // Buscar el informe correspondiente a la solicitud
     $informe = Informe::where('id_solicitud', $idSolicitud)->first();
@@ -171,14 +173,14 @@ class InformesController extends Controller
         
         // Intentar abrir el archivo desde la carpeta public
         $rutaCompletaPublic = public_path($rutaArchivo);
-        if (file_exists($rutaCompletaPublic)) {
+        if ($rutaArchivo && is_file($rutaCompletaPublic)) {
             // Abrir el archivo en el navegador
             return response()->file($rutaCompletaPublic);
         }
         
         // Si no se encuentra en la carpeta public, intentar desde la carpeta storage
         $rutaCompletaStorage = storage_path('app/public/' . $rutaArchivo);
-        if (file_exists($rutaCompletaStorage)) {
+        if ($rutaArchivo && is_file($rutaCompletaStorage)) {
             // Abrir el archivo en el navegador
             return response()->file($rutaCompletaStorage);
         }

@@ -54,6 +54,8 @@ class DocenteController extends Controller
     public function verArchivos($id, $sol){
         $estancia = Estancia::findOrFail($id);
         $solicitud = Solicitudes::findOrFail($sol);
+        abort_unless($solicitud->email === Auth::user()->email, 403);
+        abort_unless((int) $solicitud->id_estancia === (int) $estancia->id, 404);
         return view('user.informesView',compact('estancia', 'solicitud'));
     }
 
@@ -136,6 +138,8 @@ class DocenteController extends Controller
     {
         Carbon::setLocale('es');
         $solicitud = Solicitudes::findOrFail($id);
+        abort_unless($solicitud->email === Auth::user()->email, 403);
+
         $departamento=auth()->user()->academia;
         $fecha = now()->translatedFormat('d \d\e F \d\e Y');
         $inicioEstancia = Carbon::parse($solicitud->inicio_estancia)->translatedFormat('d \d\e F \d\e Y');
@@ -161,6 +165,8 @@ class DocenteController extends Controller
     {
         Carbon::setLocale('es');
         $solicitud = Solicitudes::findOrFail($id);
+        abort_unless($solicitud->email === Auth::user()->email, 403);
+
         $fecha = now()->translatedFormat('d \d\e F \d\e Y');
         $inicioEstancia = Carbon::parse($solicitud->inicio_estancia)->translatedFormat('d \d\e F \d\e Y');
         $finEstancia = Carbon::parse($solicitud->fin_estancia)->translatedFormat('d \d\e F \d\e Y');

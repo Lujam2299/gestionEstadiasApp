@@ -17,15 +17,16 @@ Route::get('/', function () {
 /*Route::get('/admindashboard', [EstanciaController::class, 'index'])
     ->middleware(['auth', 'verified'])
     ->name('admi.adminDashboard');*/
-Route::get('/dashboard', [EstanciaController::class,'index'])->middleware(['auth', 'verified'])->name('adminDashboard');
+Route::get('/dashboard', [EstanciaController::class,'index'])->middleware(['auth', 'verified'])->middleware('role:admin')->name('adminDashboard');
 Route::get('/user_dashboard', [EstanciaController::class,'indexUser'])->middleware(['auth', 'verified'])->name('dashboard');
-Route::get('/vinculaciondashboard', [EstanciaController::class,'indexVinculacion'])->middleware(['auth', 'verified'])->name('vinculacionDashboard');
+Route::get('/vinculaciondashboard', [EstanciaController::class,'indexVinculacion'])->middleware(['auth', 'verified'])->middleware('role:vinculacion')->name('vinculacionDashboard');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
+    Route::middleware('role:admin')->group(function () {
     //Usuario admin
     Route::get('/docente/create', [DocenteController::class, 'create'])->name('docente.create');
     Route::post('/docente', [DocenteController::class, 'store'])->name('docente.store');
@@ -45,7 +46,6 @@ Route::middleware('auth')->group(function () {
     Route::post('/rechazar-informe/{id}', [InformesController::class, 'rechazarInforme'])->name('rechazar.informe');
     Route::get('/informes/upload/{id}', [InformesController::class, 'showUploadForm'])->name('informes.showUploadForm');
     Route::post('/informes/upload/{id}', [InformesController::class, 'uploadConstancia'])->name('informes.uploadConstancia');
-    Route::get('/descargar-constancia/{id}', [InformesController::class, 'descargarConstancia'])->name('descargar-constancia');
 
     Route::post('/guardar-estancia', [EstanciaController::class, 'guardar'])->name('guardar-estancia');
     Route::get('/ver-estancia/{id}', [EstanciaController::class, 'showEstancia'])->name('verEstancia');
@@ -56,6 +56,8 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/docente/edit/{id}', [DocenteController::class, 'edit'])->name('docente.edit');
     Route::put('/docente/update/{id}', [DocenteController::class, 'update'])->name('docente.update');
+    });
+    Route::get('/descargar-constancia/{id}', [InformesController::class, 'descargarConstancia'])->name('descargar-constancia');
     //rutas usuario user
     Route::get('/user-reportes', [DocenteController::class, 'enableInformes'])->name('estanciaAccepted');
     Route::get('/user-solicitudes', [SolicitudesController::class, 'index'])->name('userSolicitudes');
@@ -79,6 +81,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/solicitudes/archivo/{id}/{nombreArchivo}', [SolicitudesController::class, 'mostrarArchivo'])->name('solicitudes.archivo');
     Route::delete('/cancelar-solicitud/{id}', [SolicitudesController::class, 'cancelRequest'])->name('cancelRequest');
 
+    Route::middleware('role:vinculacion')->group(function () {
     //Usuario vinculacion 
      Route::get('/ShowRequest/{id}', [SolicitudesController::class, 'VinculacionShowRequest'])->name('MostrarSolicitudVinculacion');
      Route::get('/Convenios', [ConvenioController::class, 'showConvenios'])->name('showConvenios');
@@ -89,6 +92,7 @@ Route::middleware('auth')->group(function () {
      Route::post('/convenioStore', [ConvenioController::class, 'store'])->name('convenios.store');
      Route::get('/convenioEdit/{id}', [ConvenioController::class, 'edit'])->name('convenios.edit');
      Route::put('/convenioUpdate/{id}', [ConvenioController::class, 'update'])->name('convenios.update');
+    });
     
 
 });

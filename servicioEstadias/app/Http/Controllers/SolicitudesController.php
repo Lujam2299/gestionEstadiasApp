@@ -67,7 +67,7 @@ class SolicitudesController extends Controller
         // Crear la solicitud
         $solicitud = new Solicitudes();
         $solicitud->id_estancia = $id;
-        $solicitud->email = $request->input('email');
+        $solicitud->email = Auth::user()->email;
         $solicitud->empresa = $request->empresa;
         $solicitud->docente = auth()->user()->name; // Obtener el nombre del usuario autenticado
         $solicitud->fecha_solicitud = now()->toDateString();
@@ -156,6 +156,8 @@ class SolicitudesController extends Controller
     public function showRequestFiles($id)
     {
         $solicitud = Solicitudes::findOrFail($id);
+        abort_unless($solicitud->email === Auth::user()->email, 403);
+
         $estanciaRequisitos = EstanciaRequisitos::where('id_estancia', $solicitud->id_estancia)->first();
         $idsRequisitos = json_decode($estanciaRequisitos->id_requisitos);
         $carreras= Carrera::all();
@@ -178,6 +180,11 @@ class SolicitudesController extends Controller
 
 public function mostrarArchivo($id, $nombreArchivo)
 {
+    $solicitud = Solicitudes::findOrFail($id);
+    abort_unless($solicitud->email === Auth::user()->email || in_array(Auth::user()->email, [
+        'desarrolloacademico@tecvalles.mx', 'vinculacion@tecvalles.mx',
+    ], true), 403);
+    abort_if(basename($nombreArchivo) !== $nombreArchivo, 404);
     $rutaArchivo = public_path("solicitudes/{$id}/{$nombreArchivo}");
     
     // Verifica si el archivo existe antes de mostrarlo
@@ -309,6 +316,8 @@ public function mostrarArchivo($id, $nombreArchivo)
         ]);
         // Obtener la solicitud existente
         $solicitud = Solicitudes::findOrFail($id);
+        abort_unless($solicitud->email === Auth::user()->email, 403);
+
     
         $solicitud->proyecto = $request->proyecto;
         $solicitud->plan_estudios = $request->plan_estudios;
@@ -411,6 +420,8 @@ public function mostrarArchivo($id, $nombreArchivo)
     }
     public function cancelRequest($id){
         $solicitud= Solicitudes::findOrFail($id);
+        abort_unless($solicitud->email === Auth::user()->email, 403);
+
         if($solicitud){
             $solicitud->status=8;
             $solicitud->observaciones='Solicitud Cancelada';
