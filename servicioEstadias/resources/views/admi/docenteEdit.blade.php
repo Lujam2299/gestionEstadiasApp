@@ -56,7 +56,7 @@
                                         <input class="form-control rounded" type="text" id="academia" name="academia" value="{{ $docente->academia }}" >
 -->                                 
                                         <label for="password">Contraseña Actual:</label>
-                                        <input class="form-control rounded" type="password" id="password" name="password" value="{{ $docente->password }}" disabled>
+                                        <input class="form-control rounded" type="password" id="password" name="password" value="" disabled>
                                     <br>
                                     <label for="new_password">Nueva Contraseña:</label>
                                     <input class="form-control rounded" type="password" id="new_password" name="new_password">

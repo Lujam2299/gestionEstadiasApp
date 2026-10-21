@@ -23,9 +23,16 @@ class DocenteController extends Controller
 
     public function update(Request $request, $id)
     {
-        $docentes = User::where('id', '<>', 1)->paginate(10);
         $docente =User::findOrFail($id);
         
+        $request->validate([
+            'rfc' => 'nullable|string|max:13',
+            'curp' => 'nullable|string|size:18',
+            'nombramiento' => 'nullable|string|max:255',
+            'academia' => 'nullable|string|max:255',
+            'new_password' => 'nullable|string|min:8',
+        ]);
+        $docente->academia = $request->input('academia');
         // Actualizar los campos del docente
         //$docente->name = $request->input('name');
         //$docente->email = $request->input('email');
@@ -98,6 +105,7 @@ class DocenteController extends Controller
     {
         $estancias = Estancia::all();
         $docente = User::findOrFail($id);
+        abort_if(in_array($docente->email, ['desarrolloacademico@tecvalles.mx', 'vinculacion@tecvalles.mx'], true), 422);
         $docente->delete();
 
         return view('admi.adminDashboard',compact('estancias'))->with('success', 'Docente eliminado correctamente.');
@@ -114,7 +122,7 @@ class DocenteController extends Controller
         $estancias=Estancia::all();
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:docentes,email',
+            'email' => 'required|email|max:255|unique:docentes,email',
             'rfc' => 'required|string|max:13',
             'nombramiento' => 'required|string|max:255',
             'academia' => 'required|string|max:255',
