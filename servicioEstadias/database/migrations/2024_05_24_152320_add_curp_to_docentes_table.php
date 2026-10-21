@@ -1,4 +1,5 @@
 <?php
+
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -13,7 +14,7 @@ class AddCurpToDocentesTable extends Migration
     public function up()
     {
         //Schema::table('docentes', function (Blueprint $table) {
-            //$table->string('curp')->nullable()->after('rfc');
+        //$table->string('curp')->nullable()->after('rfc');
         //});
     }
 
@@ -25,7 +26,7 @@ class AddCurpToDocentesTable extends Migration
     public function down()
     {
         //Schema::table('docentes', function (Blueprint $table) {
-          //  $table->dropColumn('curp');
+        //  $table->dropColumn('curp');
         //});
     }
 }

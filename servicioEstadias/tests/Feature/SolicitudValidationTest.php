@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\Estancia;
 use App\Models\Estanciarequisitos;
-use App\Models\Solicitudes;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -20,6 +19,7 @@ class SolicitudValidationTest extends TestCase
             'fecha_cierre' => today()->addDay(), 'archivo_convocatoria' => ''])->save();
         $requirements = new Estanciarequisitos();
         $requirements->forceFill(['id_estancia' => $estancia->id, 'id_requisitos' => '[]'])->save();
+
         return $estancia;
     }
 

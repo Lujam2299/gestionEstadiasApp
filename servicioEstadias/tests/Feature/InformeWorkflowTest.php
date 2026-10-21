@@ -32,6 +32,7 @@ class InformeWorkflowTest extends TestCase
         File::ensureDirectoryExists(public_path('input'));
         $path = public_path('input/'.uniqid().$name);
         file_put_contents($path, "%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\n%%EOF");
+
         return new UploadedFile($path, $name, 'application/pdf', null, true);
     }
 

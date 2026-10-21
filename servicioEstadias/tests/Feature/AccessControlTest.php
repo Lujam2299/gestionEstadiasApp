@@ -46,6 +46,7 @@ class AccessControlTest extends TestCase
         $this->get('/descargar-constancia/'.$solicitud->id)->assertForbidden();
         $this->assertDatabaseHas('solicitudes', ['id' => $solicitud->id, 'status' => 0]);
     }
+
     public function test_reserved_area_emails_cannot_be_claimed_through_registration_or_profile(): void
     {
         $this->post('/register', ['name' => 'Intruso', 'email' => 'desarrolloacademico@tecvalles.mx',

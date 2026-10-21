@@ -17,10 +17,10 @@ class DatabaseSeeder extends Seeder
         // User::factory(10)->create();
 
         User::factory()->create([
-                'name' => 'Desarrollo Académico',
-                'email' => 'desarrolloacademico@tecvalles.mx',
-                'password' => Hash::make('desarrollo')
-            ]
+            'name' => 'Desarrollo Académico',
+            'email' => 'desarrolloacademico@tecvalles.mx',
+            'password' => Hash::make('desarrollo'),
+        ]
         );
         User::create([
             'name' => 'Gestión Tecnológica y Vinculación',

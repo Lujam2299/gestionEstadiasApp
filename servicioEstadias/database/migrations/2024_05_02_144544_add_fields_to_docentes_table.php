@@ -17,9 +17,9 @@ return new class extends Migration
                 //$table->string('nombramiento')->after('rfc')->nullable();
                 //$table->string('status')->after('nombramiento')->nullable();
                 //$table->string('academia')->after('status')->nullable();
-                
+
             });
-            
+
         });
     }
 
