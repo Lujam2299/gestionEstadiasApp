@@ -27,22 +27,6 @@ return new class extends Migration
             $table->string('curp')->nullable();
             $table->timestamps();
         });
-        } else{
-            
-        Schema::create('docentes', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->string('email')->unique();
-            $table->timestamp('email_verified_at')->nullable();
-            $table->string('password');
-            $table->rememberToken();
-            $table->string('rfc')->nullable();
-            $table->string('nombramiento')->nullable();
-            $table->string('status')->nullable();
-            $table->string('academia')->nullable();
-            $table->string('curp')->nullable();
-            $table->timestamps();
-        });
         }
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {

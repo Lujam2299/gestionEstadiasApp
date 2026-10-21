@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('id_estancia');
             $table->string('email');
-            $table->foreign('id_estancia')->references('id')->on('estancias')->onDelete('cascade');
+            $table->foreign('id_estancia')->references('id')->on('estancias');
             $table->json('requisitos');
             $table->integer('status');
             $table->string('docente')->nullable();
@@ -26,9 +26,6 @@ return new class extends Migration
             $table->string('periodo_duracion');
             $table->timestamps();
 
-            $table->dropForeign(['id_estancia']);
-
-            $table->foreign('id_estancia')->references('id')->on('estancias');
         });
     }
 
@@ -37,13 +34,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('solicitudes', function (Blueprint $table) {
-            // Eliminar la clave foránea agregada en el método up
-            $table->dropForeign(['id_estancia']);
-
-            // Volver a agregar la clave foránea anterior que apunta a la tabla estancias
-            $table->foreign('id_estancia')->references('id')->on('estancias');
-        });
         Schema::dropIfExists('solicitudes');
         
     }
