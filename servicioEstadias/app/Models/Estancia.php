@@ -1,15 +1,16 @@
 <?php
 
 namespace App\Models;
-use App\Models\Estanciarequisitos;
+
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Estancia extends Model
 {
     use HasFactory;
+
     protected $fillable = [
-        'nombre','empresa','fecha_inicio', 'fecha_cierre', 'archivo_convocatoria', 'vigente', 
+        'nombre', 'empresa', 'fecha_inicio', 'fecha_cierre', 'archivo_convocatoria', 'vigente',
     ];
 
     /*public function requisitos()
@@ -20,6 +21,7 @@ class Estancia extends Model
     {
         return $this->belongsToMany(Requisitos::class, 'estanciarequisitos', 'id_estancia', 'id_requisitos');
     }
+
     public function estanciaRequisitos()
     {
         return $this->hasOne(EstanciaRequisitos::class, 'id_estancia');

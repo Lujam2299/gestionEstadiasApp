@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Convenio;
+use Illuminate\Http\Request;
+
 class ConvenioController extends Controller
 {
-    public function showConvenios(){
-        $convenios=Convenio::all();
+    public function showConvenios()
+    {
+        $convenios = Convenio::all();
+
         return view('vinculacion.showConvenios', compact('convenios'));
     }
 
@@ -29,14 +32,14 @@ class ConvenioController extends Controller
             'nombre' => $request->nombre,
             'fecha_inicio' => $request->fecha_inicio,
             'fecha_vigencia' => $request->fecha_vigencia,
-            'archivo_convenio' => '', 
+            'archivo_convenio' => '',
         ]);
 
         if ($request->hasFile('archivo_convenio')) {
             $archivo = $request->file('archivo_convenio');
             $nombreArchivo = $archivo->getClientOriginalName();
-            $rutaCarpeta = 'convenios/' . $convenio->id; 
-            $rutaArchivo = $rutaCarpeta . '/' . $nombreArchivo;
+            $rutaCarpeta = 'convenios/'.$convenio->id;
+            $rutaArchivo = $rutaCarpeta.'/'.$nombreArchivo;
 
             $archivo->move(public_path($rutaCarpeta), $nombreArchivo);
 
@@ -49,6 +52,7 @@ class ConvenioController extends Controller
     public function edit($id)
     {
         $convenio = Convenio::findOrFail($id);
+
         return view('vinculacion.editConvenio', compact('convenio'));
     }
 
@@ -60,7 +64,7 @@ class ConvenioController extends Controller
             'nombre' => 'required|string|max:255',
             'fecha_inicio' => 'required|date',
             'fecha_vigencia' => 'required|date|after_or_equal:fecha_inicio',
-            'archivo_convenio' => 'nullable|file|mimes:pdf|max:2048', 
+            'archivo_convenio' => 'nullable|file|mimes:pdf|max:2048',
         ]);
 
         $convenio->nombre = $request->input('nombre');
@@ -84,7 +88,4 @@ class ConvenioController extends Controller
 
         return redirect()->route('showConvenios')->with('success', 'Convenio actualizado correctamente.');
     }
-
-
-
 }

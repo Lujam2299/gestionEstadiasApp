@@ -1,30 +1,31 @@
 <?php
 
 namespace App\Http\Controllers;
-use App\Models\User;
+
 use App\Models\Estancia;
 use App\Models\Informe;
 use App\Models\Solicitudes;
-use Illuminate\Support\Facades\Auth;
-use Dompdf\Dompdf;
+use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Support\Facades\Hash;
 use Carbon\Carbon;
-
+use Dompdf\Dompdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 
 class DocenteController extends Controller
 {
     public function edit($id)
     {
         $docente = User::findOrFail($id);
+
         return view('admi.docenteEdit', ['docente' => $docente]);
     }
 
     public function update(Request $request, $id)
     {
-        $docente =User::findOrFail($id);
-        
+        $docente = User::findOrFail($id);
+
         $request->validate([
             'rfc' => 'nullable|string|max:13',
             'curp' => 'nullable|string|size:18',
@@ -40,7 +41,7 @@ class DocenteController extends Controller
         $docente->nombramiento = $request->input('nombramiento');
         //$docente->status = $request->input('status');
         $docente->curp = $request->input('curp');
-        
+
         // Verificar si se proporcionó una nueva contraseña
         if ($request->filled('new_password')) {
             // Obtener la nueva contraseña del request
@@ -50,20 +51,24 @@ class DocenteController extends Controller
             // Guardar la nueva contraseña cifrada en el modelo
             $docente->password = $hashedPassword;
         }
-        
+
         // Guardar los cambios en la base de datos
         $docente->save();
-        $estancias = Estancia::all(); 
+        $estancias = Estancia::all();
+
         return redirect()->route('docente.edit', $docente->id)->with('success', 'Los cambios se guardaron correctamente.');
 
         // Redirigir a alguna vista después de guardar los cambios
     }
-    public function verArchivos($id, $sol){
+
+    public function verArchivos($id, $sol)
+    {
         $estancia = Estancia::findOrFail($id);
         $solicitud = Solicitudes::findOrFail($sol);
         abort_unless($solicitud->email === Auth::user()->email, 403);
         abort_unless((int) $solicitud->id_estancia === (int) $estancia->id, 404);
-        return view('user.informesView',compact('estancia', 'solicitud'));
+
+        return view('user.informesView', compact('estancia', 'solicitud'));
     }
 
     public function generarInforme($id)
@@ -75,17 +80,19 @@ class DocenteController extends Controller
         $dompdf->loadHtml($html);
 
         $dompdf->render();
+
         return $dompdf->stream('carta_presentacion.pdf');
     }
 
-    public function enableInformes(){
-        $constancia='';
-        $informe_final='';
-        $email = Auth::user()->email; 
+    public function enableInformes()
+    {
+        $constancia = '';
+        $informe_final = '';
+        $email = Auth::user()->email;
         $solicitud = Solicitudes::where('email', $email)
-                                ->whereIn('status', [2, 5])
-                                ->latest()
-                                ->first();
+            ->whereIn('status', [2, 5])
+            ->latest()
+            ->first();
 
         // Determinar si los campos deben estar habilitados
         $camposHabilitados = $solicitud && $solicitud->status != 4;
@@ -108,7 +115,7 @@ class DocenteController extends Controller
         abort_if(in_array($docente->email, ['desarrolloacademico@tecvalles.mx', 'vinculacion@tecvalles.mx'], true), 422);
         $docente->delete();
 
-        return view('admi.adminDashboard',compact('estancias'))->with('success', 'Docente eliminado correctamente.');
+        return view('admi.adminDashboard', compact('estancias'))->with('success', 'Docente eliminado correctamente.');
     }
 
     public function create()
@@ -119,7 +126,7 @@ class DocenteController extends Controller
     // Guardar un nuevo docente
     public function store(Request $request)
     {
-        $estancias=Estancia::all();
+        $estancias = Estancia::all();
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:docentes,email',
@@ -128,18 +135,18 @@ class DocenteController extends Controller
             'academia' => 'required|string|max:255',
             'password' => 'required|string|min:8',
         ]);
-    
+
         User::create([
             'name' => $request->name,
             'email' => $request->email,
             'rfc' => $request->rfc,
             'nombramiento' => $request->nombramiento,
             'academia' => $request->academia,
-            'password' => Hash::make($request->password), 
+            'password' => Hash::make($request->password),
         ]);
 
         return view('admi.adminDashboard', compact('estancias'))
-                         ->with('success', 'Docente registrado exitosamente.');
+            ->with('success', 'Docente registrado exitosamente.');
     }
 
     public function descargarCarta($id)
@@ -148,7 +155,7 @@ class DocenteController extends Controller
         $solicitud = Solicitudes::findOrFail($id);
         abort_unless($solicitud->email === Auth::user()->email, 403);
 
-        $departamento=auth()->user()->academia;
+        $departamento = auth()->user()->academia;
         $fecha = now()->translatedFormat('d \d\e F \d\e Y');
         $inicioEstancia = Carbon::parse($solicitud->inicio_estancia)->translatedFormat('d \d\e F \d\e Y');
         $finEstancia = Carbon::parse($solicitud->fin_estancia)->translatedFormat('d \d\e F \d\e Y');
@@ -166,6 +173,7 @@ class DocenteController extends Controller
         ];
 
         $pdf = Pdf::loadView('plantillas.carta_presentacion', $datos);
+
         return $pdf->download('carta_presentacion.pdf');
     }
 
@@ -183,11 +191,12 @@ class DocenteController extends Controller
             'nombre' => $solicitud->docente,
             'lugar' => $solicitud->empresa,
             'asunto' => $solicitud->proyecto,
-            'dias' => $inicioEstancia . ' a ' . $finEstancia,
+            'dias' => $inicioEstancia.' a '.$finEstancia,
             'viaticos' => 'No',
         ];
 
         $pdf = Pdf::loadView('plantillas.oficio_comision', $datos);
+
         return $pdf->download('oficio_comision.pdf');
     }
 }

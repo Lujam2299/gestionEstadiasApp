@@ -1,15 +1,16 @@
 <?php
 
 namespace App\Models;
-use App\Models\Estanciarequisitos;
+
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Solicitudes extends Model
 {
     use HasFactory;
+
     protected $fillable = [
-        'id_estancia', 'email', 'requisitos', 'status', 'docente', 'fecha_solicitud', 'observaciones','empresa', 'status_convenio','periodo_duracion',
+        'id_estancia', 'email', 'requisitos', 'status', 'docente', 'fecha_solicitud', 'observaciones', 'empresa', 'status_convenio', 'periodo_duracion',
         'titular_empresa',
         'puesto_titular',
         'objetivo',
@@ -37,6 +38,7 @@ class Solicitudes extends Model
     {
         return $this->belongsTo(Estancia::class, 'id_estancia');
     }
+
     public function docente()
     {
         return $this->belongsTo(User::class, 'email', 'email');

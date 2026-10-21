@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class Estanciarequisitos extends Model
 {
     use HasFactory;
+
     protected $fillable = ['id_estancia', 'id_requisito'];
 
     // Relación con Estancia
@@ -22,5 +23,3 @@ class Estanciarequisitos extends Model
         return $this->belongsTo(Requisitos::class);
     }*/
 }
-
-

@@ -27,7 +27,7 @@ class User extends Authenticatable
         'status',
         'academia',
         'curp',
-        ];
+    ];
 
     /**
      * The attributes that should be hidden for serialization.

@@ -1,13 +1,14 @@
 <?php
 
 namespace App\Http\Controllers;
-use Illuminate\Support\Facades\File;
+
 use App\Models\Informe;
 use App\Models\Solicitudes;
-use App\Models\Estancia;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
+
 class InformesController extends Controller
 {
     public function guardarInformes(Request $request)
@@ -38,20 +39,25 @@ class InformesController extends Controller
                 $solicitud->save();
             });
         } catch (\Throwable $exception) {
-            foreach ($newPaths as $path) { File::delete(public_path($path)); }
+            foreach ($newPaths as $path) {
+                File::delete(public_path($path));
+            }
             throw $exception;
         }
+
         return view('user.uploadInformesSuccess');
     }
 
-    public function showInformes(){
+    public function showInformes()
+    {
         //$informes= Informe::all();
         $informes = Informe::with('solicitud.estancia')
-        ->whereHas('solicitud', function ($query) {
-            $query->where('status', 4)
-                  ->orWhere('status', 5);
-        })
-        ->paginate(10);
+            ->whereHas('solicitud', function ($query) {
+                $query->where('status', 4)
+                    ->orWhere('status', 5);
+            })
+            ->paginate(10);
+
         return view('admi.showInformes', compact('informes'));
     }
 
@@ -74,7 +80,7 @@ class InformesController extends Controller
     {
         // Buscar la solicitud por ID
         $solicitud = Solicitudes::find($id);
-        
+
         // Verificar si la solicitud existe
         if ($solicitud) {
             // Actualizar el estado y las observaciones
@@ -94,9 +100,9 @@ class InformesController extends Controller
     public function showUploadForm($id)
     {
         $solicitud = Solicitudes::findOrFail($id);
+
         return view('admi.uploadConstanciaFinal', compact('solicitud'));
     }
-
 
     public function uploadConstancia(Request $request, $id)
     {
@@ -117,50 +123,48 @@ class InformesController extends Controller
                 $solicitud->save();
             });
         } catch (\Throwable $exception) {
-            if ($newPath) { File::delete(public_path($newPath)); }
+            if ($newPath) {
+                File::delete(public_path($newPath));
+            }
             throw $exception;
         }
+
         return redirect()->route('adminDashboard')->with('success', 'Constancia subida exitosamente.');
     }
 
     public function descargarConstancia($id)
-{
-    $solicitud = Solicitudes::findOrFail($id);
-    abort_unless($solicitud->email === Auth::user()->email || Auth::user()->email === 'desarrolloacademico@tecvalles.mx', 403);
-    $idSolicitud = $solicitud->id;
-    
-    // Buscar el informe correspondiente a la solicitud
-    $informe = Informe::where('id_solicitud', $idSolicitud)->first();
-    
-    // Verificar si se encontró un informe para la solicitud
-    if ($informe) {
-        // Obtener la ruta relativa al archivo PDF desde el informe
-        $rutaArchivo = $informe->constancia_tec_terminacion;
-        
-        // Intentar abrir el archivo desde la carpeta public
-        $rutaCompletaPublic = public_path($rutaArchivo);
-        if ($rutaArchivo && is_file($rutaCompletaPublic)) {
-            // Abrir el archivo en el navegador
-            return response()->file($rutaCompletaPublic);
+    {
+        $solicitud = Solicitudes::findOrFail($id);
+        abort_unless($solicitud->email === Auth::user()->email || Auth::user()->email === 'desarrolloacademico@tecvalles.mx', 403);
+        $idSolicitud = $solicitud->id;
+
+        // Buscar el informe correspondiente a la solicitud
+        $informe = Informe::where('id_solicitud', $idSolicitud)->first();
+
+        // Verificar si se encontró un informe para la solicitud
+        if ($informe) {
+            // Obtener la ruta relativa al archivo PDF desde el informe
+            $rutaArchivo = $informe->constancia_tec_terminacion;
+
+            // Intentar abrir el archivo desde la carpeta public
+            $rutaCompletaPublic = public_path($rutaArchivo);
+            if ($rutaArchivo && is_file($rutaCompletaPublic)) {
+                // Abrir el archivo en el navegador
+                return response()->file($rutaCompletaPublic);
+            }
+
+            // Si no se encuentra en la carpeta public, intentar desde la carpeta storage
+            $rutaCompletaStorage = storage_path('app/public/'.$rutaArchivo);
+            if ($rutaArchivo && is_file($rutaCompletaStorage)) {
+                // Abrir el archivo en el navegador
+                return response()->file($rutaCompletaStorage);
+            }
+
+            // Si no se encuentra en ninguna de las carpetas, redirigir con un mensaje de error
+            return redirect()->back()->with('error', 'El archivo no existe');
+        } else {
+            // No se encontró un informe para la solicitud, redirigir con un mensaje de error
+            return redirect()->back()->with('error', 'No se encontró el informe para la solicitud');
         }
-        
-        // Si no se encuentra en la carpeta public, intentar desde la carpeta storage
-        $rutaCompletaStorage = storage_path('app/public/' . $rutaArchivo);
-        if ($rutaArchivo && is_file($rutaCompletaStorage)) {
-            // Abrir el archivo en el navegador
-            return response()->file($rutaCompletaStorage);
-        }
-        
-        // Si no se encuentra en ninguna de las carpetas, redirigir con un mensaje de error
-        return redirect()->back()->with('error', 'El archivo no existe');
-    } else {
-        // No se encontró un informe para la solicitud, redirigir con un mensaje de error
-        return redirect()->back()->with('error', 'No se encontró el informe para la solicitud');
     }
-}
-
-    
-
-
-
 }
