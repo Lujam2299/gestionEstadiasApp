@@ -560,10 +560,10 @@ body.estadia-app {
     margin-left: 6px;
 }
 /* Shared treatment for the existing detail, table and form screens. */
-.estadia-app .app-content>.area-slot,.estadia-app .app-content>br {
+.estadia-app .app-content>br, .estadia-app .area-slot>br {
     display: none;
 }
-.estadia-app .app-content>.py-12 {
+.estadia-app .app-content>.py-12, .estadia-app .area-slot>.py-12 {
     padding: 24px 0 55px!important;
 }
 .estadia-app .app-content .py-12 .py-12 {
