@@ -1,3 +1,1 @@
-<div class="bg-white text-gray-600 rounded-lg p-2 w-auto mx-10 float-right">
-    <span>{{ Auth::user()->name ?? 'Invitado' }}</span>
-</div>
+<div class="page-context"><span class="status-dot"></span>Espacio de trabajo <span aria-hidden="true">/</span> {{ Auth::user()->name ?? 'Invitado' }}</div>

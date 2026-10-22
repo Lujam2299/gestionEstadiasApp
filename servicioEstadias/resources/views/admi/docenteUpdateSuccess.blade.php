@@ -25,4 +25,3 @@
         </div>
     </x-admin-layout>
 </x-app-layout>
-<x-footer></x-footer>

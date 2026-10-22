@@ -37,4 +37,3 @@
         </form>
     </div>
 </x-app-layout>
-<x-footer></x-footer>

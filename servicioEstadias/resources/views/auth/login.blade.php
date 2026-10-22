@@ -1,5 +1,6 @@
-<x-logo></x-logo>
+
 <x-guest-layout>
+    <h2 class="access-title">Qué gusto verte.</h2><p class="access-subtitle">Ingresa para continuar con tus proyectos.</p>
     <!-- Session Status -->
     <x-auth-session-status class="mb-4 py-1" :status="session('status')" />
     
@@ -47,4 +48,4 @@
     </form>
     
 </x-guest-layout>
-<x-footer></x-footer>
+

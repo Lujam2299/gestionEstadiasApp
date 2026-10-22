@@ -1,28 +1,34 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta name="csrf-token" content="{{ csrf_token() }}">
+<html lang="es">
 
-        <title>{{ config('app.name', 'Laravel') }}</title>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Acceso · Estadías TecNM</title>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+</head>
 
-        <!-- Fonts -->
-        <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
-
-        <!-- Scripts -->
-        @vite(['resources/css/app.css', 'resources/js/app.js'])
-    </head>
-    <body class="font-sans text-gray-900 antialiased">
-        <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100">
-            <div style="background-color:#1B396A;" class="rounded">
-                <x-title></x-title>
+<body class="estadia-app guest-page">
+    <main class="access-layout">
+        <section class="access-story" aria-label="Portal de estadías">
+            <a href="{{ url('/') }}" class="brand"><span
+                    class="brand-symbol">e<span>.</span></span><span><strong>Estadías</strong><small>TecNM · Ciudad
+                        Valles</small></span></a>
+            <div class="access-copy"><span class="eyebrow light">VINCULACIÓN QUE TRANSFORMA</span>
+                <h1>El conocimiento<br>se vive <em>afuera.</em></h1>
+                <p>Conecta tu experiencia docente con nuevas oportunidades. Un solo espacio para tus convocatorias,
+                    solicitudes e informes.</p>
             </div>
+            <div class="access-bottom"><span>Academia + experiencia</span><span aria-hidden="true">↗</span></div>
+            <div class="access-orbit" aria-hidden="true"></div>
+        </section>
+        <section class="access-form-panel">
+            <div class="access-form"><span class="eyebrow">PORTAL INSTITUCIONAL</span>{{ $slot }}</div>
+            <p class="access-help">Instituto Tecnológico de Ciudad Valles<br><span>Desarrollo académico · Vinculación ·
+                    Docentes</span></p>
+        </section>
+    </main>
+</body>
 
-            <div class="w-full sm:max-w-md mt-6 px-6 py-4 bg-white shadow-md overflow-hidden sm:rounded-lg">
-                {{ $slot }}
-            </div>
-        </div>
-    </body>
 </html>

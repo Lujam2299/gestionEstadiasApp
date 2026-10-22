@@ -105,7 +105,7 @@
         </div>
     </div>
 </x-app-layout>
-<x-footer></x-footer>
+
 
 <script>
     function updateFileName(input, displayId) {

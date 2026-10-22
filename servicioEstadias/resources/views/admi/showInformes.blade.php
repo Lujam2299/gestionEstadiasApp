@@ -119,4 +119,4 @@
         }
     </script>
 </x-app-layout>
-<x-footer></x-footer>
+
