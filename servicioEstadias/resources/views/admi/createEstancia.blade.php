@@ -1,60 +1,72 @@
 <x-app-layout>
-    <x-admin-layout>    </x-admin-layout><br>
-    <x-username-layout />
-        <div class="py-12">
-            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                <div class="overflow-x-auto">
-                    <div class="min-w-screen py-5 flex items-center justify-center">
-                        <div class="bg-white text-gray-600 rounded-lg shadow-xl w-full">
-                            <div class="overflow-x-auto px-6">
-                                <h1 class="flex items-center justify-center text-3xl">Nueva Convocatoria</h1>
-                                <form method="POST" action="{{ route('guardar-estancia') }}" enctype="multipart/form-data">
-                                    @csrf
-                                    <div class="mb-4">
-                                        <label for="nombre" class="block text-gray-700 font-bold mb-2">Nombre de la estancia:</label>
-                                        <input type="text" id="nombre" name="nombre" class="form-input rounded-md w-full">
-                                    </div>
-                                    <div class="mb-4">
-                                        <label for="empresa" class="block text-gray-700 font-bold mb-2">Empresa/Institución:</label>
-                                        <input type="text" id="empresa" name="empresa" class="form-input rounded-md w-full">
-                                    </div>
-                                    <div class="mb-4">
-                                        <label for="fecha_convocatoria" class="block text-gray-700 font-bold mb-2">Fecha de apertura convocatoria:</label>
-                                        <input type="date" id="fecha_convocatoria" name="fecha_convocatoria" class="form-input rounded-md w-full">
-                                    </div>
-                                    <div class="mb-4">
-                                        <label for="fecha_cierre" class="block text-gray-700 font-bold mb-2">Fecha de cierre de convocatoria:</label>
-                                        <input type="date" id="fecha_cierre" name="fecha_cierre" class="form-input rounded-md w-full">
-                                    </div>
-                                    <div class="mb-4">
-                                        <label for="archivo_convocatoria" class="block text-gray-700 font-bold mb-2">Convocatoria (PDF):</label>
-                                        <input type="file" id="archivo_convocatoria" name="archivo_convocatoria" class="form-input rounded-md w-full">
-                                    </div>
-                                    <div class="mb-4 form-group">
-                                        <label for="requisitos" class="block text-gray-700 font-bold mb-2">Seleccionar requisitos (CTRL + Click):</label>
-                                        <select name="requisitos[]" id="requisitos" multiple class="form-multiselect rounded-md w-full py-6">
-                                            @foreach($requisitos as $requisito)
-                                            @if($requisito->nombre=='Convocatoria')
-                                            @else
-                                                <option value="{{ $requisito->id }}">{{$loop->iteration-1}}.- {{ $requisito->nombre }}</option>
-                                            @endif
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                    <div class="form-group text-center">
-                                        
-                            
-                                    <button type="submit" class="btn btn-primary">Crear</button>
-                                    <input type="hidden" id="requisitos_json" name="requisitos_json">
-                                    <a href="{{ route('adminDashboard') }}" class="btn btn-secondary">Regresar</a>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
+    <div class="workspace">
+        <a href="{{ route('adminDashboard') }}" class="back-link">← Convocatorias</a>
+        <header class="editor-heading"><span class="eyebrow">NUEVA OPORTUNIDAD</span>
+            <h1>El siguiente paso<br>empieza aquí.</h1>
+            <p>Crea una convocatoria para conectar conocimiento y experiencia.</p>
+        </header>
+        <div class="editor-grid">
+            <form class="editor-card" method="POST" action="{{ route('guardar-estancia') }}" enctype="multipart/form-data">
+                @csrf
+                @if ($errors->any())
+                    <div class="alert alert-danger" role="alert"><strong>Revisa los datos antes de continuar.</strong>
+                        <ul>
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
                     </div>
+                @endif
+                <div class="form-section-title"><span>01</span>
+                    <h2>Información de la convocatoria</h2>
                 </div>
-            </div>
+                <div class="field"><label for="nombre">Nombre de la estancia</label><input id="nombre"
+                        name="nombre" value="{{ old('nombre') }}" placeholder="Ej. Innovación y desarrollo tecnológico"
+                        required></div>
+                <div class="field"><label for="empresa">Empresa o institución</label><input id="empresa"
+                        name="empresa" value="{{ old('empresa') }}" placeholder="Nombre de la organización receptora"
+                        required></div>
+                <div class="field-grid">
+                    <div class="field"><label for="fecha_convocatoria">Fecha de apertura</label><input type="date"
+                            id="fecha_convocatoria" name="fecha_convocatoria" value="{{ old('fecha_convocatoria') }}"
+                            required></div>
+                    <div class="field"><label for="fecha_cierre">Fecha de cierre</label><input type="date"
+                            id="fecha_cierre" name="fecha_cierre" value="{{ old('fecha_cierre') }}" required></div>
+                </div>
+                <div class="form-section-title"><span>02</span>
+                    <h2>Documento y requisitos</h2>
+                </div>
+                <div class="file-zone field"><label for="archivo_convocatoria">Documento de la convocatoria</label>
+                    <p>Selecciona un archivo PDF de hasta 2 MB.</p><input type="file" id="archivo_convocatoria"
+                        name="archivo_convocatoria" accept="application/pdf" required>
+                </div>
+                <fieldset class="requirements-fieldset">
+                    <legend>Documentos que deberá presentar el docente</legend>
+                    <p class="field-help">Selecciona al menos un requisito.</p>
+                    <div class="requirement-list">
+                        @foreach ($requisitos as $requisito)
+                            @if ($requisito->nombre !== 'Convocatoria')
+                                <label><input type="checkbox" name="requisitos[]" value="{{ $requisito->id }}"
+                                        @checked(in_array($requisito->id, old('requisitos', [])))><span>{{ $requisito->nombre }}</span></label>
+                            @endif
+                        @endforeach
+                    </div>
+                </fieldset>
+                <div class="editor-actions"><a class="button-secondary"
+                        href="{{ route('adminDashboard') }}">Cancelar</a><button type="submit"
+                        class="button-primary">Crear convocatoria <span aria-hidden="true">↗</span></button></div>
+            </form>
+            <aside class="editor-aside"><span class="eyebrow">ANTES DE PUBLICAR</span>
+                <h2>La claridad abre oportunidades.</h2>
+                <p>Un nombre descriptivo, fechas precisas y requisitos claros ayudan a que cada docente prepare su
+                    participación.</p>
+                <div class="aside-tip"><strong>Ten a mano el PDF</strong>
+                    <p>Incluye los detalles de participación, objetivos y contacto de la organización receptora.</p>
+                </div>
+                <div class="aside-tip"><strong>Revisa el calendario</strong>
+                    <p>La fecha de cierre debe ser igual o posterior a la apertura.</p>
+                </div>
+            </aside>
         </div>
-
+    </div>
 </x-app-layout>
-<x-footer></x-footer>
